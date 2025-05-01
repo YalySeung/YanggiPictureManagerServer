@@ -1,0 +1,7 @@
+package com.yanggi.yanggipicturemanagerserver.repository;
+
+import com.yanggi.yanggipicturemanagerserver.model.Photo;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PhotoRepository extends JpaRepository<Photo, Long> {
+}

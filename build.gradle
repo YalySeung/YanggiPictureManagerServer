@@ -1,30 +1,49 @@
 plugins {
     id 'java'
     id 'war'
-    id 'org.springframework.boot' version '3.4.5'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version '2.7.18'
+    id 'io.spring.dependency-management' version '1.1.4'
 }
 
-group = 'com.yanggi'
-version = '0.0.1-SNAPSHOT'
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
+group = 'com.yourcompany'
+version = '1.0.0'
+sourceCompatibility = '17'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    // Spring Boot Starter
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // JPA & Database
+    runtimeOnly 'com.h2database:h2' // 개발용 (운영 시 다른 DB로 교체)
+    // runtimeOnly 'org.mariadb.jdbc:mariadb-java-client' // MariaDB
+
+    // Servlet 기반 WAR 배포를 위해 내장 톰캣 제거
     providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+
+    // 파일 업로드를 위한 Commons IO
+    implementation 'commons-io:commons-io:2.11.0'
+
+    // JSON 처리
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // 테스트
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
+bootWar {
+    enabled = true
+}
+
+bootJar {
+    enabled = false
 }

@@ -6,8 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/photos")
@@ -18,18 +22,24 @@ public class PhotoController {
     PhotoService photoService;
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadPhoto(@RequestParam("file") MultipartFile file) {
-        String filename = photoService.storeFile(file);
+    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file,
+                                         @AuthenticationPrincipal UserDetails user) {
+        String filename = photoService.storeFile(file, user.getUsername());
         return ResponseEntity.ok(filename);
     }
 
-    @GetMapping("/download")
-    public ResponseEntity<Resource> downloadPhotos(@RequestParam("ids") String ids) {
-        // ids = "uuid1,uuid2,uuid3"
-        Resource zipFile = photoService.createZip(ids.split(","));
+    @DeleteMapping("/{photoId}")
+    public ResponseEntity<Void> delete(@PathVariable Long photoId) {
+        photoService.deletePhoto(photoId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/download/zip")
+    public ResponseEntity<Resource> downloadZip(@RequestBody List<String> filenames) {
+        Resource zip = photoService.createZip(filenames);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"favorites.zip\"")
-                .body(zipFile);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + zip.getFilename())
+                .body(zip);
     }
 }
 

@@ -1,8 +1,11 @@
 package com.yanggi.yanggipicturemanagerserver.service;
 
-import com.yanggi.yanggipicturemanagerserver.model.Photo;
+import com.yanggi.yanggipicturemanagerserver.model.entity.Photo;
+import com.yanggi.yanggipicturemanagerserver.model.entity.User;
 import com.yanggi.yanggipicturemanagerserver.repository.PhotoRepository;
+import com.yanggi.yanggipicturemanagerserver.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -11,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.nio.file.*;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -20,10 +24,15 @@ import java.util.zip.ZipOutputStream;
 public class PhotoService {
 
     private final Path uploadDir = Paths.get("uploads");
-    private final PhotoRepository photoRepository;
 
-    public PhotoService(PhotoRepository photoRepository) {
+    @Autowired
+    PhotoRepository photoRepository;
+    @Autowired
+    UserRepository userRepository;
+
+    public PhotoService(PhotoRepository photoRepository, UserRepository userRepository) {
         this.photoRepository = photoRepository;
+        this.userRepository = userRepository;
         try {
             Files.createDirectories(uploadDir);
         } catch (IOException e) {
@@ -31,70 +40,73 @@ public class PhotoService {
         }
     }
 
-    public String storeFile(MultipartFile file) {
+    public String storeFile(MultipartFile file, String username) {
         try {
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("사용자 없음: " + username));
+
             String originalName = file.getOriginalFilename();
             String ext = getFileExtension(originalName);
-            String uuid = UUID.randomUUID().toString() + "." + ext;
-            Path target = uploadDir.resolve(uuid);
+            String uuidName = UUID.randomUUID().toString() + "." + ext;
+            Path target = uploadDir.resolve(uuidName);
             file.transferTo(target);
 
-            // DB에 메타데이터 저장
             Photo photo = Photo.builder()
+                    .user(user)
+                    .filename(uuidName)
                     .originalName(originalName)
-                    .storedName(uuid)
                     .fileType(ext)
-                    .tags("기타") // 기본 태그 처리, 나중에 프론트에서 받아도 됨
+                    .fileSize(file.getSize())
                     .uploadedAt(LocalDateTime.now())
+                    .deleted(false)
                     .build();
-            photoRepository.save(photo);
 
-            return uuid;
+            photoRepository.save(photo);
+            return uuidName;
+
         } catch (IOException e) {
             throw new RuntimeException("파일 저장 실패", e);
         }
     }
 
-    public Resource createZip(String[] storedNames) {
+    public Resource createZip(List<String> filenames) {
         try {
-            String zipFilename = "favorites_" + UUID.randomUUID() + ".zip";
-            Path zipPath = uploadDir.resolve(zipFilename);
+            String zipName = "favorites_" + UUID.randomUUID() + ".zip";
+            Path zipPath = uploadDir.resolve(zipName);
             try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipPath.toFile()))) {
-                for (String name : storedNames) {
+                for (String name : filenames) {
                     Path file = uploadDir.resolve(name);
                     if (Files.exists(file)) {
-                        zos.putNextEntry(new ZipEntry(file.getFileName().toString()));
+                        zos.putNextEntry(new ZipEntry(name));
                         Files.copy(file, zos);
                         zos.closeEntry();
                     }
                 }
             }
-            return new FileSystemResource(zipPath.toFile());
+            return new FileSystemResource(zipPath);
         } catch (IOException e) {
             throw new RuntimeException("ZIP 생성 실패", e);
         }
+    }
+
+    public void deletePhoto(Long photoId) {
+        Photo photo = photoRepository.findById(photoId)
+                .orElseThrow(() -> new RuntimeException("사진을 찾을 수 없습니다. id=" + photoId));
+
+        Path filePath = uploadDir.resolve(photo.getFilename());
+        try {
+            Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            throw new RuntimeException("파일 삭제 실패: " + photo.getFilename(), e);
+        }
+
+        photoRepository.delete(photo);
     }
 
     private String getFileExtension(String filename) {
         if (filename == null) return "";
         int dot = filename.lastIndexOf('.');
         return (dot >= 0) ? filename.substring(dot + 1).toLowerCase() : "";
-    }
-
-    public void deletePhoto(Long id) {
-        Photo photo = photoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("사진을 찾을 수 없습니다: id=" + id));
-
-        // 파일 삭제
-        Path filePath = uploadDir.resolve(photo.getStoredName());
-        try {
-            Files.deleteIfExists(filePath);
-        } catch (IOException e) {
-            throw new RuntimeException("파일 삭제 실패: " + photo.getStoredName(), e);
-        }
-
-        // DB 삭제
-        photoRepository.deleteById(id);
     }
 
 }

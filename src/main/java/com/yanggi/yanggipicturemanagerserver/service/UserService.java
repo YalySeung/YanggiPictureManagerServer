@@ -1,24 +1,36 @@
 package com.yanggi.yanggipicturemanagerserver.service;
 
+import com.yanggi.yanggipicturemanagerserver.model.entity.User;
+import com.yanggi.yanggipicturemanagerserver.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class UserService implements UserDetailsService {
 
+    @Autowired
+    UserRepository userRepository;
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // 여기서 실제 사용자 정보 조회 (DB, 메모리 등)
-        if (!username.equals("user1")) {
-            throw new UsernameNotFoundException("사용자를 찾을 수 없습니다.");
-        }
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
 
-        return User.builder()
-                .username("user1")
-                .password("{noop}pass1") // 비밀번호는 인코딩 되어 있어야 함
-                .roles("USER")
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(user.getUsername())
+                .password(user.getPassword()) // 암호화된 비번일 것
+                .roles(user.getRole())
                 .build();
     }
+
+    public User findEntityByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+    }
+
 }

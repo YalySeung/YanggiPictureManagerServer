@@ -23,7 +23,7 @@ public class UserService implements UserDetailsService {
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getUsername())
-                .password(user.getPassword()) // 암호화된 비번일 것
+                .password("{noop}"+user.getPassword()) // 암호화된 비번일 것
                 .roles(user.getRole())
                 .build();
     }

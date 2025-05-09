@@ -20,8 +20,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
     // JPA & Database
-    runtimeOnly 'com.h2database:h2' // 개발용 (운영 시 다른 DB로 교체)
-    // runtimeOnly 'org.mariadb.jdbc:mariadb-java-client' // MariaDB
+//    runtimeOnly 'com.h2database:h2' // 개발용 (운영 시 다른 DB로 교체)
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client' // MariaDB
 
     // Servlet 기반 WAR 배포를 위해 내장 톰캣 제거
     providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'

@@ -1,0 +1,1 @@
+insert into users (username, password, display_name, role, created_at) values ('test', '1234', '양사장', '', current_date);

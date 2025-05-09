@@ -29,7 +29,7 @@ public class PhotoTagService {
     }
 
     public void removeTag(Long photoId, String tag) {
-        List<PhotoTag> tags = tagRepository.findByPhotoIdAndTag(photoId, tag);
+        List<PhotoTag> tags = tagRepository.findByPhoto_PhotoIdAndTag(photoId, tag);
         tagRepository.deleteAll(tags);
     }
 }

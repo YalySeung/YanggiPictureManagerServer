@@ -9,5 +9,5 @@ import java.util.List;
 public interface PhotoTagRepository extends JpaRepository<PhotoTag, Long> {
     List<PhotoTag> findByPhoto(Photo photo);
 
-    List<PhotoTag> findByPhotoIdAndTag(Long photoId, String tag);
+    List<PhotoTag> findByPhoto_PhotoIdAndTag(Long photoId, String tag);
 }

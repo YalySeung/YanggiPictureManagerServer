@@ -6,6 +6,7 @@ import com.yanggi.yanggipicturemanagerserver.repository.PhotoRepository;
 import com.yanggi.yanggipicturemanagerserver.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -23,16 +24,18 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class PhotoService {
 
-    private final Path uploadDir = Paths.get("uploads");
+    private final Path uploadDir;
 
     @Autowired
     PhotoRepository photoRepository;
     @Autowired
     UserRepository userRepository;
 
-    public PhotoService(PhotoRepository photoRepository, UserRepository userRepository) {
+    public PhotoService(PhotoRepository photoRepository, UserRepository userRepository,  @Value("${app.upload.dir}") String uploadPath) {
         this.photoRepository = photoRepository;
         this.userRepository = userRepository;
+        this.uploadDir = Paths.get(uploadPath);
+
         try {
             Files.createDirectories(uploadDir);
         } catch (IOException e) {
@@ -109,4 +112,13 @@ public class PhotoService {
         return (dot >= 0) ? filename.substring(dot + 1).toLowerCase() : "";
     }
 
+    public Photo findById(Long id) {
+        return photoRepository.findById(id).orElseThrow(() -> new RuntimeException("사진 없음"));
+    }
+
+    public List<Photo> getPhotosByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+        return photoRepository.findByUserAndDeletedFalse(user);
+    }
 }

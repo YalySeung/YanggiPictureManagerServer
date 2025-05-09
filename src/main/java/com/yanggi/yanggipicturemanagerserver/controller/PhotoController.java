@@ -1,5 +1,6 @@
 package com.yanggi.yanggipicturemanagerserver.controller;
 
+import com.yanggi.yanggipicturemanagerserver.model.entity.Photo;
 import com.yanggi.yanggipicturemanagerserver.service.PhotoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,18 @@ public class PhotoController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + zip.getFilename())
                 .body(zip);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Photo> getPhoto(@PathVariable Long id) {
+        Photo photo = photoService.findById(id);
+        
+        return ResponseEntity.ok(photo);
+    }
+
+    @GetMapping
+    public List<Photo> getMyPhotos(@AuthenticationPrincipal UserDetails userDetails) {
+        return photoService.getPhotosByUsername(userDetails.getUsername());
     }
 }
 

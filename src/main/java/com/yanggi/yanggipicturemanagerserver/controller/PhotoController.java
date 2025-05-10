@@ -1,5 +1,6 @@
 package com.yanggi.yanggipicturemanagerserver.controller;
 
+import com.yanggi.yanggipicturemanagerserver.model.dto.PhotoResponse;
 import com.yanggi.yanggipicturemanagerserver.model.entity.Photo;
 import com.yanggi.yanggipicturemanagerserver.service.PhotoService;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +52,7 @@ public class PhotoController {
     }
 
     @GetMapping
-    public List<Photo> getMyPhotos(@AuthenticationPrincipal UserDetails userDetails) {
+    public List<PhotoResponse> getMyPhotos(@AuthenticationPrincipal UserDetails userDetails) {
         return photoService.getPhotosByUsername(userDetails.getUsername());
     }
 }

@@ -1,6 +1,7 @@
 package com.yanggi.yanggipicturemanagerserver.model.entity;
 
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Photo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

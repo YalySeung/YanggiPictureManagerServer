@@ -1,5 +1,6 @@
 package com.yanggi.yanggipicturemanagerserver.service;
 
+import com.yanggi.yanggipicturemanagerserver.model.dto.PhotoResponse;
 import com.yanggi.yanggipicturemanagerserver.model.entity.Photo;
 import com.yanggi.yanggipicturemanagerserver.model.entity.User;
 import com.yanggi.yanggipicturemanagerserver.repository.PhotoRepository;
@@ -17,6 +18,7 @@ import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -24,20 +26,20 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class PhotoService {
 
-    private final Path uploadDir;
+    private final Path fileDirectory;
 
     @Autowired
     PhotoRepository photoRepository;
     @Autowired
     UserRepository userRepository;
 
-    public PhotoService(PhotoRepository photoRepository, UserRepository userRepository,  @Value("${app.upload.dir}") String uploadPath) {
+    public PhotoService(PhotoRepository photoRepository, UserRepository userRepository,  @Value("${app.file.dir}") String fileDir) {
         this.photoRepository = photoRepository;
         this.userRepository = userRepository;
-        this.uploadDir = Paths.get(uploadPath);
+        this.fileDirectory = Paths.get(fileDir);
 
         try {
-            Files.createDirectories(uploadDir);
+            Files.createDirectories(fileDirectory);
         } catch (IOException e) {
             throw new RuntimeException("업로드 디렉토리 생성 실패", e);
         }
@@ -51,7 +53,7 @@ public class PhotoService {
             String originalName = file.getOriginalFilename();
             String ext = getFileExtension(originalName);
             String uuidName = UUID.randomUUID().toString() + "." + ext;
-            Path target = uploadDir.resolve(uuidName);
+            Path target = fileDirectory.resolve(uuidName);
             file.transferTo(target);
 
             Photo photo = Photo.builder()
@@ -75,10 +77,10 @@ public class PhotoService {
     public Resource createZip(List<String> filenames) {
         try {
             String zipName = "favorites_" + UUID.randomUUID() + ".zip";
-            Path zipPath = uploadDir.resolve(zipName);
+            Path zipPath = fileDirectory.resolve(zipName);
             try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipPath.toFile()))) {
                 for (String name : filenames) {
-                    Path file = uploadDir.resolve(name);
+                    Path file = fileDirectory.resolve(name);
                     if (Files.exists(file)) {
                         zos.putNextEntry(new ZipEntry(name));
                         Files.copy(file, zos);
@@ -96,7 +98,7 @@ public class PhotoService {
         Photo photo = photoRepository.findById(photoId)
                 .orElseThrow(() -> new RuntimeException("사진을 찾을 수 없습니다. id=" + photoId));
 
-        Path filePath = uploadDir.resolve(photo.getFilename());
+        Path filePath = fileDirectory.resolve(photo.getFilename());
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
@@ -116,9 +118,23 @@ public class PhotoService {
         return photoRepository.findById(id).orElseThrow(() -> new RuntimeException("사진 없음"));
     }
 
-    public List<Photo> getPhotosByUsername(String username) {
+    public List<PhotoResponse> getPhotosByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("사용자 없음"));
-        return photoRepository.findByUserAndDeletedFalse(user);
+
+        List<Photo> photoList = photoRepository.findByUserAndDeletedFalse(user);
+
+        return photoList.stream().map(photo -> PhotoResponse.builder()
+                .photoId(photo.getPhotoId())
+                .user(photo.getUser())
+                .filename(photo.getFilename())
+                .originalName(photo.getOriginalName())
+                .fileType(photo.getFileType())
+                .fileSize(photo.getFileSize())
+                .tag(photo.getTag())
+                .uploadedAt(photo.getUploadedAt())
+                .deleted(photo.getDeleted())
+                .fileUrl(Paths.get(fileDirectory.toString(), photo.getFilename()).toString())
+                .build()).collect(Collectors.toUnmodifiableList());
     }
 }
